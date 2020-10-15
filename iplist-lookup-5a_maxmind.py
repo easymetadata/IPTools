@@ -12,6 +12,7 @@ import geoip2.database
 import requests
 from netaddr import IPNetwork, IPAddress
 
+# Developed by David Dym @ easymetadata.com v1 07/05/2020
 #Updated for python3
 
 #sys.setdefaultencoding('utf8') #set encoding
