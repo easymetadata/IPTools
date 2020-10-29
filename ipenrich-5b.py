@@ -16,7 +16,7 @@ import argparse
 # Developed by David Dym @ easymetadata.com v1 07/05/2020
 # Updated dd @ easymetadata.com v5b 10/29/2020
 #
-# This script uses geoip db's to enrich ip address location information.
+# This script uses geoip db's to enrich ip address location information. You must download the geolite2 City and ASN databases and put them in the same folder with the script.
 # This script downloads various ip lists to provide threat intel for ipset
 # Requires python3
 
