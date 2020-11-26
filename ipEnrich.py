@@ -20,6 +20,7 @@ import argparse
 # v1 07/05/2020 -Updated for python3
 # v2 11/25/2020
 # 
+# Requires GeoLite2 database
 
 #whois_cache = []
 fqdn_cache = {}
