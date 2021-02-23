@@ -1,4 +1,8 @@
 #!/usr/env python
+# Developed by David Dym @ easymetadata.com 
+# 07/05/2020 Rewrite for python3
+# 11/25/2020 Rewrite to make lists into separate yml. Add update to list based on age
+# 02/23/2021 Ignore ssl warnings
 import os
 import time
 import datetime
@@ -13,32 +17,21 @@ from urllib.parse import urlparse
 from pathlib import Path
 import geoip2.database
 import requests
+from urllib3.exceptions import InsecureRequestWarning
 from netaddr import IPNetwork, IPAddress
 import argparse
 
-# Developed by David Dym @ easymetadata.com 
-# v1 07/05/2020 -Updated for python3
-# v2 11/25/2020
-# 
-# Requires GeoLite2 database
+# Suppress only the single warning from urllib3 needed.
+requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
-#whois_cache = []
 fqdn_cache = {}
 
 dicLists = {}
-#documents = []
-
 
 def getFeedsFromYml():
     with open('lists.yml', 'r') as file:
         documents = yaml.full_load(file)
     return documents
-    # for item, doc in documents.items():
-    #     if "netset" in item:
-    #         for itm in doc:
-    #             print(itm['url'])
-            #print(item, ":", doc)
-
 
 def writeFQDNcache():
     with open('fqdnCache.txt', 'wb') as handle:
@@ -100,7 +93,7 @@ def GetFireHoleLists(outFilename,strUrl,fList):
     my_file = Path(outFilename)
     if not my_file.exists():
         print("Fetching firehole list: " + outFilename)
-        r = requests.get(strUrl, allow_redirects=True)
+        r = requests.get(strUrl, verify=False, allow_redirects=True)
         fireholeraw = r.content.decode()
 
         with open(outFilename,'w') as outFHfile:
@@ -137,7 +130,7 @@ def CheckFireHoleList_cidr(ip,flist,strMessage):
 
 def Checkcidr(ip, lst):
     print(ip)
-#https://stackoverflow.com/questions/819355/how-can-i-check-if-an-ip-is-in-a-network-in-python-2-x
+    #https://stackoverflow.com/questions/819355/how-can-i-check-if-an-ip-is-in-a-network-in-python-2-x
     for line in lst:
         try:
             if IPAddress(ip.rstrip()) in IPNetwork(line.rstrip()): 
@@ -150,9 +143,6 @@ def ipProcess(ip,args):
     
     row = ip + ","
     row += getGeoInfo(ip)
-    
-    #this checks full cidr range. need to incorporate into all searches below...
-    #fh = CheckFireHoleList_cidr(ip.rstrip(),firehole_list,"level 1")
 
     if args.FQDN:
         row += ", " + CheckFQDN(ip.rstrip())
@@ -162,16 +152,6 @@ def ipProcess(ip,args):
     for kLstName, vLstValues in dicLists.items():
         if ip in vLstValues:
                 fhresult += kLstName + "|"
-        # #now check cidr ranges
-        # if "/" in vLstValues:
-        #     try:
-        #         lstCIDRonly = [x for x in vLstValues if '/' in x]
-        #         for strCIDR in lstCIDRonly:
-        #             if Checkcidr(ip,strCIDR):
-        #                 if kLstName not in fhresult:
-        #                     fhresult += fhresult + kLstName + "|"
-        #     except:
-        #         continue
 
     #If we have hits from feeds clean up the end
     if fhresult:
@@ -200,7 +180,6 @@ def main():
 
     args = parser.parse_args()
 
-    #GetFireHoleLists()
     loadFQDNcache()
 
     documents = getFeedsFromYml()
