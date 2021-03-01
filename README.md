@@ -1,5 +1,7 @@
 # IPEnrich
-IP list enrichment scripts to provide IP geo information and threat feed enrichment
+An IP enrichment script to provide IP geo information and threat feed enrichment. 
+
+List of threat feeds is defined in the list.yml. The lists are primarily derived from FireHol or misp feeds.
 
 Developed by David Dym @ easymetadata.com
 
