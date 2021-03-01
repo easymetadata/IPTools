@@ -5,8 +5,16 @@ netsets:
   url: 'https://iplists.firehol.org/files/firehol_level2.netset'
 - name: firehol_level3
   url: 'https://iplists.firehol.org/files/firehol_level3.netset'
+- name: firehol_level4
+  url: 'https://iplists.firehol.org/files/firehol_level4.netset'
+- name: firehol_webclient
+  url: 'https://iplists.firehol.org/files/firehol_webclient.netset'
 - name: firehol_webserver
   url: 'https://iplists.firehol.org/files/firehol_webserver.netset'
+- name: greensnow
+  url: 'https://iplists.firehol.org/files/greensnow.ipset'
+- name: haley_ssh
+  url: 'https://iplists.firehol.org/files/haley_ssh.ipset'
 - name: firehol_anonymous
   url: 'https://iplists.firehol.org/files/firehol_anonymous.netset'
 - name: firehol_proxies
@@ -15,6 +23,12 @@ netsets:
   url: 'https://iplists.firehol.org/files/firehol_abusers_1d.netset'
 - name: datacenters
   url: 'https://iplists.firehol.org/files/datacenters.netset'
+- name: cidr_report_bogons
+  url: 'https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/cidr_report_bogons.netset'
+- name: voipbl
+  url: 'https://iplists.firehol.org/files/voipbl.netset'
+- name: emerging_threats
+  url: 'http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt'
 ipsets:
 - name: ransomware_cryptowall_ps
   url: 'https://iplists.firehol.org/files/ransomware_cryptowall_ps.ipset'
@@ -32,7 +46,17 @@ ipsets:
   url: 'https://iplists.firehol.org/files/sslproxies_30d.ipset'
 - name: dm_tor
   url: 'https://iplists.firehol.org/files/dm_tor.ipset'
+- name: et_tor
+  url: 'https://iplists.firehol.org/files/et_tor.ipset'
+- name: myip.ms
+  url: 'https://iplists.firehol.org/files/myip.ipset'
 - name: socks_proxy
   url: 'https://iplists.firehol.org/files/socks_proxy.ipset'
+- name: socks_proxy_30d
+  url: 'https://iplists.firehol.org/files/socks_proxy_30d.ipset'
 - name: sslproxies
   url: 'https://iplists.firehol.org/files/sslproxies.ipset'
+- name: xroxy_30d
+  url: 'https://iplists.firehol.org/files/xroxy_30d.ipset'
+- name: blocklist_net_ua
+  url: 'https://iplists.firehol.org/files/blocklist_net_ua.ipset'
