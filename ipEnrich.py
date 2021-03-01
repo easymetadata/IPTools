@@ -3,7 +3,7 @@
 # 07/05/2020 Rewrite for python3
 # 11/25/2020 Rewrite to make lists into separate yml. Add update to list based on age
 # 02/23/2021 Ignore ssl warnings
-# 02/25/2021 Add -o export option
+# 02/25/2021 Add -o export to file option
 # 02/28/2021 Add api lookup for entries not found in M*xmind ASN db
 import os
 import time
