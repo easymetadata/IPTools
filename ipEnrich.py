@@ -3,14 +3,16 @@
 # 07/05/2020 Rewrite for python3
 # 11/25/2020 Rewrite to make lists into separate yml. Add update to list based on age
 # 02/23/2021 Ignore ssl warnings
+# 02/25/2021 Add -o export option
+# 02/28/2021 Add api lookup for entries not found in M*xmind ASN db
 import os
 import time
 import datetime
-import json
 import sys
 import io
 import pickle
 import socket
+import pandas as pd
 import json
 import yaml
 from urllib.parse import urlparse
@@ -27,6 +29,8 @@ requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 fqdn_cache = {}
 
 dicLists = {}
+
+lstResults = []
 
 def getFeedsFromYml():
     with open('lists.yml', 'r') as file:
@@ -80,14 +84,30 @@ def getGeoInfo(IP):
     try:
         with geoip2.database.Reader('GeoLite2-ASN.mmdb') as reader:
             responseASN = reader.asn(IP)
-            if(responseASN.autonomous_system_organization):
-                result.append("\"" + responseASN.autonomous_system_organization.replace(","," ") + "\"")
-            else:
+        try:
+                result.append("\"%s\"" % responseASN.autonomous_system_number)
+        except:
+            result.append("\"\"")
+        try:
+                if(responseASN.autonomous_system_organization):
+                    result.append("\"%s\"" % responseASN.autonomous_system_organization.replace(","," "))
+                else:
+                    result.append("\"\"")
+        except:
                 result.append("\"\"")
     except:
-        result.append("\"\"")
+        try:
+            result.append("\"[not found]\",\"%s\"" % GetOrgInfoFallback(IP) )
+        except:
+            result.append("\"[not found]\",\"\"")
 
     return ",".join(result)
+
+#This works as a fallback when we don't find an ASN for an IP in the MaxM*nd ASN db
+def GetOrgInfoFallback(strQuery): 
+    strUrl = "http://ip-api.com/json/" + strQuery
+    r = requests.get(strUrl)
+    return r.json()['org']
 
 def GetFireHoleLists(outFilename,strUrl,fList):   
     my_file = Path(outFilename)
@@ -158,10 +178,12 @@ def ipProcess(ip,args):
         row += "," + fhresult.rstrip("|")
 
     if fhresult and args.bHitsOnly:
-        print (row)
+        lstResults.append(row)
+        #print (row)
     else:
         if not args.bHitsOnly:
-            print (row)
+            lstResults.append(row)
+            #print (row)
 
 def setupFeeds(documents):
     for item, doc in documents.items():
@@ -177,6 +199,7 @@ def main():
     parser.add_argument("-i", "--i", dest='ip', type=str, required=False, help="IPs to lookup")
     parser.add_argument("-n", "--HitsOnly", dest='bHitsOnly', required=False,action='store_true', help="Only show hits from threat feeds 'True'")
     parser.add_argument("-r", "--FQDN", dest='FQDN', required=False,action='store_true', help="Resolve FQDN. Provide 'True'")
+    parser.add_argument("-o", "--outfile", dest='outfile', required=False, help="Output results to a file")
 
     args = parser.parse_args()
 
@@ -185,8 +208,11 @@ def main():
     documents = getFeedsFromYml()
 
     setupFeeds(documents)
+    print("\n")
 
-    print("IP, City, Country, ASN Org, FQDN, Indicators")
+    lstColumns = ["IP, City, Country, ASN, ASN Org, FQDN, Indicators"]
+    #lstResults.append(lstColumns)
+    #print("\",\"".join(lstColumns) + "\"")
 
     if args.file:
         with open(args.file, "r") as f:
@@ -197,6 +223,14 @@ def main():
     else:
         print("Provide an ip or file to process...")
 
+    #write output file
+    if args.outfile:
+        with open(args.outfile, 'w') as f:
+            print("\n".join(lstColumns), file=f)
+            print("\n".join(lstResults), file=f)
+    else:
+        print("\r\n".join(lstColumns))
+        print("\r\n".join(lstResults))
     # save fqdn cache
     writeFQDNcache()
 
