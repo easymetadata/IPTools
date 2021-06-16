@@ -1,3 +1,6 @@
+api_sources:
+- name: asn_lookup
+  url: 'http://ip-api.com/json/'
 netsets:
 - name: firehol_level1
   url: 'https://raw.githubusercontent.com/ktsaou/blocklist-ipsets/master/firehol_level1.netset'
@@ -30,8 +33,10 @@ netsets:
 - name: emerging_threats
   url: 'http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt'
 ipsets:
-- name: ransomware_cryptowall_ps
-  url: 'https://iplists.firehol.org/files/ransomware_cryptowall_ps.ipset'
+- name: botscout_7d
+  url: 'https://iplists.firehol.org/files/botscout_7d.ipset'
+- name: bitcoin_nodes_30d
+  url: 'https://iplists.firehol.org/files/bitcoin_nodes_30d.ipset'
 - name: blocklist_de
   url: 'https://iplists.firehol.org/files/blocklist_de.ipset'
 - name: tor_exits.ipset
@@ -60,3 +65,6 @@ ipsets:
   url: 'https://iplists.firehol.org/files/xroxy_30d.ipset'
 - name: blocklist_net_ua
   url: 'https://iplists.firehol.org/files/blocklist_net_ua.ipset'
+asnsets:
+- name: asn_drop
+  url: 'https://www.spamhaus.org/drop/asndrop.txt'
