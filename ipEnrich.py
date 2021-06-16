@@ -41,7 +41,7 @@ def CheckFQDN(ip):
         else:
             data = socket.gethostbyaddr(ip)
             if repr(data[0]):
-                hostdns = "\"{}\"".format(repr(data[0]).replace('\'',''))
+                hostdns = "{}".format(repr(data[0]).replace('\'',''))
 
                  #update cache
                 fqdn_cache[ip] = hostdns
@@ -184,7 +184,9 @@ def ipProcess(_ip):
         row += getGeoInfo(ip)
 
         if getFQDN:
-            row += ", " + CheckFQDN(ip.rstrip())
+            row += ",\"" + CheckFQDN(ip.rstrip()) + "\""
+        else:
+            row += ",\"\""
 
         #Lookup from IP lists. Can be slow with big list
         if bSkipFeeds:
