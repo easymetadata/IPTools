@@ -145,7 +145,7 @@ def setupFeeds(check_update,documents):
     for item, doc in documents.items():
         if "netset" in item or "ipset" in item:
             iUpdateHrs = update_interval/60/60
-            Parallel(n_jobs=multiprocessing.cpu_count())(delayed(GetFireHoleLists)(check_update,itm) for itm in doc)
+            Parallel(n_jobs=multiprocessing.cpu_count(),prefer='threads')(delayed(GetFireHoleLists)(check_update,itm) for itm in doc)
 
 def CheckFireHoleList_cidr(ip,flist,strMessage):
     #https://stackoverflow.com/questions/819355/how-can-i-check-if-an-ip-is-in-a-network-in-python-2-x
@@ -236,7 +236,7 @@ if __name__ == "__main__":
 
     if args.file:
         with open(args.file, "r", encoding='utf-8') as f:
-            lstResults = Parallel(n_jobs=multiprocessing.cpu_count())(delayed(ipProcess)(ip) for ip in f)
+            lstResults = Parallel(n_jobs=multiprocessing.cpu_count(),prefer='threads')(delayed(ipProcess)(ip) for ip in f)
     elif args.ip:
         lstResults.append(ipProcess(args.ip.rstrip()))
     else:
@@ -256,6 +256,6 @@ if __name__ == "__main__":
         with open(args.outfile, 'w', encoding='utf-8') as f:
             print("\n".join(lstColumns), file=f)
             print("\n".join(lstResults), file=f)
-        print("Results written to %s", args.outfile)
+        print("Results written to %s" % args.outfile)
 
 print ("\n done")
