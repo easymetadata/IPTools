@@ -1,7 +1,8 @@
-#!/usr/env python
+#!/usr/bin/python
 # Developed by David Dym @ easymetadata.com 
 # 11/25/2020 Rewrite to make lists into separate yml. Add update to list based on age
 # 06/15/2021 Implemened joblib for faster updating and processing. Cleaned up output with quoting. Refactored code.
+# 07/31/2021 Implemented cidr enumeration for ip networks. IP's will now match against ip network netsets
 import os
 import sys
 import datetime
@@ -26,6 +27,7 @@ bSkipFeeds = False
 update_interval = 86400
 fqdn_cache = {}
 dicLists = {}
+dicListCIDRS = {}
 dictASNs = {}
 
 def getFeedsFromYml():
@@ -65,8 +67,6 @@ def getGeoInfo(IP):
         else:
             result.append("\"\"")
     except Exception as e: print(e)
-    #except:
-    #    result.append("\"\"")
 
     try:
         with geoip2.database.Reader('GeoLite2-ASN.mmdb') as readASN:
@@ -147,32 +147,11 @@ def setupFeeds(check_update,documents):
             iUpdateHrs = update_interval/60/60
             Parallel(n_jobs=multiprocessing.cpu_count(),prefer='threads')(delayed(GetFireHoleLists)(check_update,itm) for itm in doc)
 
-def CheckFireHoleList_cidr(ip,flist,strMessage):
-    #https://stackoverflow.com/questions/819355/how-can-i-check-if-an-ip-is-in-a-network-in-python-2-x
-    for ncidr in flist[35:]:
-        try:
-            if IPAddress(ip) in IPNetwork(ncidr.rstrip()): 
-                return strMessage
-        except:
-            print(ncidr)
-    return ""
-
 def CheckASN(sASN):
     for kLstName, vLstValues in dicLists.items():
         if sASN in vLstValues:
                 return kLstName + "|"
     return ""
-
-def Checkcidr(ip, lst):
-    print(ip)
-    #https://stackoverflow.com/questions/819355/how-can-i-check-if-an-ip-is-in-a-network-in-python-2-x
-    for line in lst:
-        try:
-            if IPAddress(ip.rstrip()) in IPNetwork(line.rstrip()): 
-                return True
-        except:
-            print("errorrrrr")
-    return False
 
 #need to return row/rows here then add after exiting the thread!
 def ipProcess(_ip):
@@ -188,13 +167,26 @@ def ipProcess(_ip):
         else:
             row += ",\"\""
 
-        #Lookup from IP lists. Can be slow with big list
+        #Lookup from threat feeds.
         if bSkipFeeds:
             fhresult = ""
+            bHitfound = False
+
             for kLstName, vLstValues in dicLists.items():
                 if ip in vLstValues:
                     fhresult += kLstName + "|"
+                    bHitfound = True
 
+            #No IP hit yet - now let's search CIDR sub sets
+            if not bHitfound:
+                try:
+                    for kLstName, vLstValues in dicListCIDRS.items():
+                        for item in vLstValues:
+                            if ip in IPNetwork(item):
+                                fhresult += kLstName + " (cidr)|"
+                except Exception as e:
+                    print(e)
+            
             #If we have hits from feeds clean up the end
             if fhresult:
                 row += ",\"" + fhresult.rstrip("|") +"\""
@@ -229,6 +221,10 @@ if __name__ == "__main__":
         setupFeeds(args.skip_update,documents)
         LoadFeeds(documents)
 
+    #Generate a sub list of cidr ranges from master list to speed things up later.
+    for key, val in dicLists.items():
+        dicListCIDRS[key] = [item for (item) in val if '/' in item]
+        
     if getFQDN:
         print("Note: Hostname lookups will increase processing time.")
 
@@ -260,4 +256,4 @@ if __name__ == "__main__":
             print("\n".join(lstResults), file=f)
         print("Results written to %s" % args.outfile)
 
-print ("\n done")
+print ("\n Lookups complete.")
