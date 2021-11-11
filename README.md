@@ -8,7 +8,7 @@ If you want full lookup against feeds <br>
 python3 ipEnrich.py -f file.txt <br>
 python3 ipEnrich.py -i IP <br>
  <br>
-If you just want geo location against ip's <br>
+If you only just want geo location against ip's <br>
 python3 ipEnrich.py -j -f file.txt <br>
 python3 ipEnrich.py -j -i IP <br>
 
