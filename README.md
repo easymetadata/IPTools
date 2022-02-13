@@ -37,7 +37,9 @@ Only geo ip lookups
 ```
 
 For ip geo lookups with threat feeds with xlsx output 
-```  python3 ipEnrich.py -f test_iplist_small.txt -o results111.csv -x ```
+```
+python3 ipEnrich.py -f test_iplist_small.txt -o results111.csv -x 
+```
 
 # Disposable email domain check
 
