@@ -24,11 +24,11 @@ optional arguments:
 **Usage** <br>
 If you want full lookup against feeds <br>
 ```  python3 ipEnrich.py -f file.txt <br>
-  python3 ipEnrich.py -i IP``` <br>
+  python3 ipEnrich.py -i IP ```
  <br>
 If you only just want geo location against ip's <br>
 ```  python3 ipEnrich.py -j -f file.txt <br>
-  python3 ipEnrich.py -j -i IP ```<br>
+  python3 ipEnrich.py -j -i IP ```
  <br>
 For ip geo lookups with threat feeds with xlsx output 
 ```  python3 ipEnrich.py -f test_iplist_small.txt -o results111.csv -x```
