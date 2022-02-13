@@ -105,9 +105,6 @@ def GetFeeds(skip_update, itm):
         fname=(os.path.basename(strUrl.path))
         fext = ''.join(Path(fname).suffixes)
         outFilename= Path('cache',itm['name'] + fext)
-        #outFilename=Path('cache',(os.path.basename(strUrl.path)))
-        
-        #my_file = Path('cache',outFilename)
 
         if not skip_update:
             if not outFilename.exists():
