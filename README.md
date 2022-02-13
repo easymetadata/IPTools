@@ -3,6 +3,7 @@ Multithreaded IP information lookups. Provides geo IP information and threat fee
 
 List of threat feeds is defined in the list.yml. Lists are primarily FireHol and misp feeds. Any IP list can be used. Feel free to suggest more.
 
+```
 usage: ipEnrich.py [-h] [-f FILE] [-i IP] [-n] [-j] [-r] [-o OUTFILE] [-x] [-s]
 
 A tool to gather information garding IPs
@@ -18,6 +19,7 @@ optional arguments:
                         Output file name [default CSV]
   -x, --xlsx            Output results to a file in xlsx
   -s, --skip_update     I'm in a hurry.. Skip downloading updated lists.
+```
 
 **Usage** <br>
 If you want full lookup against feeds <br>
