@@ -1,7 +1,10 @@
 # IPEnrich
-Multithreaded IP information lookups. Provides geo IP information and threat feed mapping of your choosing. 
 
-List of threat feeds is defined in the list.yml. Lists are primarily FireHol and misp feeds. Any IP list can be used. Feel free to suggest more.
+This tool provides geo IP information and threat feed mapping of your choosing. It's multithreaded for spead.
+
+# Configuration and Feeds
+
+The list of feeds are defined in the list.yml. Lists are primarily FireHol and misp feeds but can be any ip list.  Feel free to suggest more.
 
 ```
 usage: ipEnrich.py [-h] [-f FILE] [-i IP] [-n] [-j] [-r] [-o OUTFILE] [-x] [-s]
@@ -21,19 +24,23 @@ optional arguments:
   -s, --skip_update     I'm in a hurry.. Skip downloading updated lists.
 ```
 
-**Usage** <br>
-If you want full lookup against feeds <br>
-```  python3 ipEnrich.py -f file.txt 
-  python3 ipEnrich.py -i IP ```
- <br>
-If you only just want geo location against ip's <br>
+**Examples** 
+
+Geo ip lookups with feed matching 
+```  python3 ipEnrich.py -f file.txt (use a list of ip's from a file)
+  python3 ipEnrich.py -i IP  (lookup a single ip)
+```
+
+Only geo ip lookups
 ```  python3 ipEnrich.py -j -f file.txt 
-  python3 ipEnrich.py -j -i IP ```
- <br>
+  python3 ipEnrich.py -j -i IP 
+```
+
 For ip geo lookups with threat feeds with xlsx output 
-```  python3 ipEnrich.py -f test_iplist_small.txt -o results111.csv -x```
+```  python3 ipEnrich.py -f test_iplist_small.txt -o results111.csv -x ```
 
 # Disposable email domain check
+
 Check's email domains from feed enrichment to see if email is a disposable email
 
-Developed by David Dym @ easymetadata.com
+Developed by David Dym
