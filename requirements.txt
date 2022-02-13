@@ -34,7 +34,7 @@ six==1.16.0
 termcolor==1.1.0
 tomlkit==0.7.2
 typing-extensions==3.10.0.0
-urllib3==1.26.4
+urllib3==1.26.5
 yarg==0.1.9
 yarl==1.6.3
 yaspin==2.0.0
