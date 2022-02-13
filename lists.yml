@@ -1,7 +1,19 @@
 api_sources:
 - name: asn_lookup
   url: 'http://ip-api.com/json/'
-netsets:
+geolite2:
+- name: GeoLite2-ASN
+  url: 'https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-ASN&license_key=_LICENSEKEY_&suffix=tar.gz'
+  suffix: "tar.gz"
+- name: GeoLite2-City
+  url: 'https://download.maxmind.com/app/geoip_download?edition_id='
+  suffix: "tar.gz"
+- name: GeoLite2-Country
+  url: 'https://download.maxmind.com/app/geoip_download?edition_id='
+  suffix: "tar.gz"
+threat_feeds:
+- name: tor_exit_node
+  url: 'https://check.torproject.org/torbulkexitlist'
 - name: firehol_level1
   url: 'https://raw.githubusercontent.com/ktsaou/blocklist-ipsets/master/firehol_level1.netset'
 - name: firehol_level2
@@ -24,7 +36,7 @@ netsets:
   url: 'https://iplists.firehol.org/files/firehol_proxies.netset'
 - name: firehol_abusers_1d
   url: 'https://iplists.firehol.org/files/firehol_abusers_1d.netset'
-- name: datacenters
+- name: firehol_datacenters
   url: 'https://iplists.firehol.org/files/datacenters.netset'
 - name: cidr_report_bogons
   url: 'https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/cidr_report_bogons.netset'
@@ -32,7 +44,8 @@ netsets:
   url: 'https://iplists.firehol.org/files/voipbl.netset'
 - name: emerging_threats
   url: 'http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt'
-ipsets:
+- name: DataCenters
+  url: 'https://raw.githubusercontent.com/jhassine/server-ip-addresses/master/data/datacenters.csv'
 - name: botscout_7d
   url: 'https://iplists.firehol.org/files/botscout_7d.ipset'
 - name: bitcoin_nodes_30d
@@ -55,6 +68,18 @@ ipsets:
   url: 'https://iplists.firehol.org/files/et_tor.ipset'
 - name: myip.ms
   url: 'https://iplists.firehol.org/files/myip.ipset'
+- name: socks4_proxies
+  url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks4.txt'
+- name: socks5_proxies
+  url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt'
+- name: http_proxies
+  url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt'
+- name: anonymous_http_proxies
+  url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies_anonymous/http.txt'
+- name: anonymous_socks4_proxies
+  url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies_anonymous/socks4.txt'
+- name: anonymous_socks5_proxies
+  url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies_anonymous/socks5.txt'
 - name: socks_proxy
   url: 'https://iplists.firehol.org/files/socks_proxy.ipset'
 - name: socks_proxy_30d
@@ -65,6 +90,12 @@ ipsets:
   url: 'https://iplists.firehol.org/files/xroxy_30d.ipset'
 - name: blocklist_net_ua
   url: 'https://iplists.firehol.org/files/blocklist_net_ua.ipset'
+- name: Experimental_IOC_Tweets_threatview
+  url: 'https://threatview.io/Downloads/Experimental-IOC-Tweets.txt'
+- name: Proactive_Hunt_CS_C2_Threat_Intel
+  url: 'https://threatview.io/Downloads/High-Confidence-CobaltStrike-C2%20-Feeds.txt'
+- name: IP_Blocklist_threatview
+  url: 'https://threatview.io/Downloads/IP-High-Confidence-Feed.txt'
 asnsets:
 - name: asn_drop
   url: 'https://www.spamhaus.org/drop/asndrop.txt'
