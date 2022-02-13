@@ -21,15 +21,15 @@ optional arguments:
 
 **Usage** <br>
 If you want full lookup against feeds <br>
-&nbsp&nbsp python3 ipEnrich.py -f file.txt <br>
-&nbsp&nbsp python3 ipEnrich.py -i IP <br>
+  python3 ipEnrich.py -f file.txt <br>
+  python3 ipEnrich.py -i IP <br>
  <br>
 If you only just want geo location against ip's <br>
-&nbsp&nbsp python3 ipEnrich.py -j -f file.txt <br>
-&nbsp&nbsp python3 ipEnrich.py -j -i IP <br>
+  python3 ipEnrich.py -j -f file.txt <br>
+  python3 ipEnrich.py -j -i IP <br>
  <br>
 For ip geo lookups with threat feeds with xlsx output 
-&nbsp&nbsp python3 ipEnrich.py -f test_iplist_small.txt -o results111.csv -x
+  python3 ipEnrich.py -f test_iplist_small.txt -o results111.csv -x
 
 # Disposable email domain check
 Check's email domains from feed enrichment to see if email is a disposable email
