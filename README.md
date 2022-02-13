@@ -2,7 +2,7 @@
 
 This tool provides geo IP information and threat feed mapping of your choosing. It's multithreaded for spead.
 
-# Configuration and Feeds
+**Configuration and Feeds**
 
 The list of feeds are defined in the list.yml. Lists are primarily FireHol and misp feeds but can be any ip list.  Feel free to suggest more.
 
