@@ -1,15 +1,20 @@
 api_sources:
-- name: asn_lookup
+- name: asn_lookup2
   url: 'http://ip-api.com/json/'
+- name: asn_lookup1
+  url: 'https://ip2c.org/'
+config:
+- name: GEOLITE2_API_KEY
+  value: ''
 geolite2:
 - name: GeoLite2-ASN
-  url: 'https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-ASN&license_key=_LICENSEKEY_&suffix=tar.gz'
+  url: 'https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-ASN&license_key=YOUR_LICENSE_KEY&suffix=tar.gz'
   suffix: "tar.gz"
 - name: GeoLite2-City
-  url: 'https://download.maxmind.com/app/geoip_download?edition_id='
+  url: 'https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=YOUR_LICENSE_KEY&suffix=tar.gz'
   suffix: "tar.gz"
 - name: GeoLite2-Country
-  url: 'https://download.maxmind.com/app/geoip_download?edition_id='
+  url: 'https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=YOUR_LICENSE_KEY&suffix=tar.gz'
   suffix: "tar.gz"
 threat_feeds:
 - name: tor_exit_node
@@ -96,6 +101,8 @@ threat_feeds:
   url: 'https://threatview.io/Downloads/High-Confidence-CobaltStrike-C2%20-Feeds.txt'
 - name: IP_Blocklist_threatview
   url: 'https://threatview.io/Downloads/IP-High-Confidence-Feed.txt'
+- name: Spamhaus_drop
+  url: 'https://www.spamhaus.org/drop/drop.txt'
 asnsets:
-- name: asn_drop
-  url: 'https://www.spamhaus.org/drop/asndrop.txt'
+- name: bad_asn
+  url: 'https://raw.githubusercontent.com/brianhama/bad-asn-list/master/bad-asn-list.csv'
