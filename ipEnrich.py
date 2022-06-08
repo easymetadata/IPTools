@@ -4,6 +4,7 @@
 # 06/15/2021 Implemened joblib for faster updating and processing. Cleaned up output with quoting. Refactored code.
 # 07/31/2021 Implemented cidr enumeration for ip networks. IP's will now match against ip network netsets
 # 02/12/2022 Updates and refactoring. Added xlsx output. Updated lists adding new feeds
+# 06/07/2022 Added ASN matching to 'asnsets' such as bad asn lookups.
 import os
 import io
 import sys
@@ -31,7 +32,7 @@ update_interval = 46400
 fqdn_cache = {}
 dicLists = {}
 dicListCIDRS = {}
-dictASNs = {}
+dicASNLists = {}
 
 def getFeedsFromYml():
     with open('lists.yml', 'r') as file:
@@ -61,15 +62,15 @@ def getGeoInfo(IP):
             responseCity = readCity.city(IP)
         try:
             if(responseCity.city.name):
-                result.append("\"%s\"" % responseCity.city.name)
+                result.append("%s" % responseCity.city.name)
             else:
-                result.append("\"\"")
+                result.append("")
         except Exception as e: print(e)
         try:
             if(responseCity.country.name):
-                result.append("\"%s\"" % responseCity.country.name)
+                result.append("%s" % responseCity.country.name)
             else:
-                result.append("\"\"")
+                result.append("")
         except Exception as e: print(e)
     except Exception as e: print(e)
 
@@ -77,24 +78,32 @@ def getGeoInfo(IP):
         with geoip2.database.Reader('GeoLite2-ASN.mmdb') as readASN:
             responseASN = readASN.asn(IP)
             try:
-               result.append("\"%s\"" % responseASN.autonomous_system_number)
+                #check asn list too
+               strASN = str(responseASN.autonomous_system_number)
+               #strTASN = CheckASN(strASN)
+               #if strTASN:
+               strASN = CheckASN(strASN)
+               #result.append("%s" % responseASN.autonomous_system_number)
+               result.append(strASN)
             except:
-                result.append("\"\"")
+                result.append("")
             try:
                 if(responseASN.autonomous_system_organization):
-                    result.append("\"%s\"" % responseASN.autonomous_system_organization.replace(","," "))
+                    result.append("%s" % responseASN.autonomous_system_organization.replace(","," "))
                 else:
-                    result.append("\"\"")
+                    result.append("")
             except:
-               result.append("\"\"")
-    except Exception as e: print(e)
+               result.append("")
+    #except Exception as e: print(e)
+    except Exception as e:
+        return ",".join(result)
     return ",".join(result)
 
 #This works as a fallback when we don't find an ASN for an IP in the MaxM*nd ASN db
 def GetOrgInfoFallback(strQuery): 
         strUrl = "http://ip-api.com/json/" + strQuery
         r = requests.get(strUrl)
-        strR = "\"\""+ r.json()['asn'] + "\",\""+  r.json()['org'] + "\"\""
+        strR = ""+ r.json()['asn'] + ","+  r.json()['org'] + ""
         return strR
 
 def GetFeeds(skip_update, itm): 
@@ -110,7 +119,7 @@ def GetFeeds(skip_update, itm):
             if not outFilename.exists():
                 r = requests.get(itm['url'], verify=False, allow_redirects=True)
                 feedlistraw = r.content.decode()
-                print("DL new list: %s" % outFilename)
+                #print("DL new list: %s" % outFilename)
                 with open(outFilename,'w', encoding='utf-8') as outFHfile:
                     for i, line in enumerate(feedlistraw):
                         outFHfile.write(line)
@@ -138,28 +147,48 @@ def LoadFeeds(documents):
     for item, doc in documents.items():
         if "threat_feeds" in item:
             for itm in doc:
-                    a = urlparse(itm['url'])
-                    fname=(os.path.basename(a.path))
-                    fext = ''.join(Path(fname).suffixes)
-                    fpath=Path('cache',itm['name'] + fext)
-                    with open(fpath,'r', encoding='utf-8') as inF:
-                        tList = []
-                        for line in inF:
-                            if not line.startswith("#",0,1):
-                                tList.append(line.rstrip())
-                    dicLists[itm['name']] = list(set(tList))
+                a = urlparse(itm['url'])
+                fname=(os.path.basename(a.path))
+                fext = ''.join(Path(fname).suffixes)
+                fpath=Path('cache',itm['name'] + fext)
+                with open(fpath,'r', encoding='utf-8') as inF:
+                    tList = []
+                    for line in inF:
+                        if not line.startswith("#",0,1):
+                            tList.append(line.rstrip())
+                dicLists[itm['name']] = list(set(tList))
+
+def LoadASNFeeds(documents):
+    for item, doc in documents.items():
+        if "asnsets" in item:
+            for itm in doc:
+                a = urlparse(itm['url'])
+                fname=(os.path.basename(a.path))
+                fext = ''.join(Path(fname).suffixes)
+                fpath=Path('cache',itm['name'] + fext)
+                with open(fpath,'r', encoding='utf-8') as inF:
+                    tList = []
+                    for line in inF:
+                        #if not line.startswith("#",0,1):
+                        tList.append(line.strip())
+                dicASNLists[itm['name']] = list(set(tList))
 
 def setupFeeds(check_update,documents):
     for item, doc in documents.items():
-        if "threat_feeds" in item:
+        if "threat_feeds" in item or "asnsets" in item:
             iUpdateHrs = update_interval/60/60
             Parallel(n_jobs=multiprocessing.cpu_count(),prefer='threads')(delayed(GetFeeds)(check_update,itm) for itm in doc)
 
 def CheckASN(sASN):
-    for kLstName, vLstValues in dicLists.items():
-        if sASN in vLstValues:
-                return kLstName + "|"
-    return ""
+    try:
+        for kLstName, vLstValues in dicASNLists.items():
+            #print("|" + vLstValues + "|")
+            if sASN in "".join(vLstValues):
+                #print(vLstValues)
+                return sASN + " [" + kLstName + "]"
+        return sASN
+    except Exception as err:
+        print(err)
 
 #need to return row/rows here then add after exiting the thread!
 def ipProcess(_ip):
@@ -167,13 +196,13 @@ def ipProcess(_ip):
     try:
         ip = _ip.rstrip()
 
-        row = "\"" + ip + "\","
+        row = "" + ip + ","
         row += getGeoInfo(ip)
 
         if getFQDN:
-            row += ",\"" + CheckFQDN(ip.rstrip()) + "\""
+            row += "," + CheckFQDN(ip.rstrip()) + ""
         else:
-            row += ",\"\""
+            row += ","
 
         #Lookup from threat feeds.
         if bSkipFeeds:
@@ -184,7 +213,7 @@ def ipProcess(_ip):
                 if ip in vLstValues:
                     fhresult += kLstName + "|"
                     bHitfound = True
-
+            
             #No IP hit yet - now let's search CIDR sub sets
             if not bHitfound:
                 for kLstName, vLstValues in dicListCIDRS.items():
@@ -194,7 +223,7 @@ def ipProcess(_ip):
             
             #If we have hits from feeds clean up the end
             if fhresult:
-                row += ",\"" + fhresult.rstrip("|") +"\""
+                row += "," + fhresult.rstrip("|") +""
 
             if bHitsOnly and not fhresult:
                 return ""
@@ -229,6 +258,7 @@ if __name__ == "__main__":
         print("Fetching new and updated feeds... [Update older than 24 hrs]")
         setupFeeds(args.skip_update,documents)
         LoadFeeds(documents)
+        LoadASNFeeds(documents)
 
     #Generate a sub list of cidr ranges from master list to speed things up later.
     for key, val in dicLists.items():
@@ -237,7 +267,7 @@ if __name__ == "__main__":
     if getFQDN:
         print("Note: Hostname lookups will increase processing time.")
 
-    lstColumns = ["\"IP\",\"City\",\"Country\",\"ASN\",\"ASN Org\",\"FQDN\",\"Indicators\""]
+    lstColumns = ["IP,City,Country,ASN,ASN Org,FQDN,Indicators"]
 
     lstResults = []
 
@@ -257,7 +287,7 @@ if __name__ == "__main__":
 
     #Output results
     print("\r\n" + "\r\n".join(lstResults))
-    
+
     #Write results to file
     if args.outfile:
         if not args.xlsx:
