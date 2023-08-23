@@ -3,9 +3,13 @@ api_sources:
   url: 'http://ip-api.com/json/'
 - name: asn_lookup1
   url: 'https://ip2c.org/'
-config:
+api_keys:
 - name: GEOLITE2_API_KEY
-  value: ''
+  value: 'ADD_KEY_HERE'
+- name: VIRUSTOTAL_API_KEY
+  value: 'ADD_KEY_HERE'
+- name: VTsleepTime
+  value: '30'
 geolite2:
 - name: GeoLite2-ASN
   url: 'https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-ASN&license_key=YOUR_LICENSE_KEY&suffix=tar.gz'
@@ -19,29 +23,29 @@ geolite2:
 threat_feeds:
 - name: tor_exit_node
   url: 'https://check.torproject.org/torbulkexitlist'
-- name: firehol_level1
+- name: fh_level1
   url: 'https://raw.githubusercontent.com/ktsaou/blocklist-ipsets/master/firehol_level1.netset'
-- name: firehol_level2
+- name: fh_level2
   url: 'https://iplists.firehol.org/files/firehol_level2.netset'
-- name: firehol_level3
+- name: fh_level3
   url: 'https://iplists.firehol.org/files/firehol_level3.netset'
-- name: firehol_level4
+- name: fh_level4
   url: 'https://iplists.firehol.org/files/firehol_level4.netset'
-- name: firehol_webclient
+- name: fh_webclient
   url: 'https://iplists.firehol.org/files/firehol_webclient.netset'
-- name: firehol_webserver
+- name: fh_webserver
   url: 'https://iplists.firehol.org/files/firehol_webserver.netset'
 - name: greensnow
   url: 'https://iplists.firehol.org/files/greensnow.ipset'
 - name: haley_ssh
   url: 'https://iplists.firehol.org/files/haley_ssh.ipset'
-- name: firehol_anonymous
+- name: fh_anonymous
   url: 'https://iplists.firehol.org/files/firehol_anonymous.netset'
-- name: firehol_proxies
+- name: fh_proxies
   url: 'https://iplists.firehol.org/files/firehol_proxies.netset'
-- name: firehol_abusers_1d
+- name: fh_abusers_1d
   url: 'https://iplists.firehol.org/files/firehol_abusers_1d.netset'
-- name: firehol_datacenters
+- name: fh_datacenters
   url: 'https://iplists.firehol.org/files/datacenters.netset'
 - name: cidr_report_bogons
   url: 'https://raw.githubusercontent.com/firehol/blocklist-ipsets/master/cidr_report_bogons.netset'
@@ -64,7 +68,7 @@ threat_feeds:
 - name: bi_any_0_1d
   url: 'https://iplists.firehol.org/files/bi_any_0_1d.ipset'
 - name: alienvault_reputation
-  url: 'https://iplists.firehol.org/files/alienvault_reputation.ipset'
+  url: 'https://reputation.alienvault.com/reputation.generic'
 - name: sslproxies_30d
   url: 'https://iplists.firehol.org/files/sslproxies_30d.ipset'
 - name: dm_tor
@@ -97,12 +101,35 @@ threat_feeds:
   url: 'https://iplists.firehol.org/files/blocklist_net_ua.ipset'
 - name: Experimental_IOC_Tweets_threatview
   url: 'https://threatview.io/Downloads/Experimental-IOC-Tweets.txt'
-- name: Proactive_Hunt_CS_C2_Threat_Intel
+- name: ThreatView-CobaltStrike_C2=
   url: 'https://threatview.io/Downloads/High-Confidence-CobaltStrike-C2%20-Feeds.txt'
 - name: IP_Blocklist_threatview
   url: 'https://threatview.io/Downloads/IP-High-Confidence-Feed.txt'
 - name: Spamhaus_drop
   url: 'https://www.spamhaus.org/drop/drop.txt'
+- name: sspwauth
+  url: 'https://dataplane.org/sshpwauth.txt'
+- name: ipsum_level4
+  url: 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/4.txt'
+- name: botvrij_ioclist.ip-dst
+  url: 'https://www.botvrij.eu/data/ioclist.ip-dst'
+- name: botvrij_misp.text_ip-dst
+  url: 'https://www.botvrij.eu/data/misp.text_ip-dst.ADMIN.txt'
+- name: botvrij_ioclist.url
+  url: 'https://www.botvrij.eu/data/ioclist.url'
+- name: botvrij_misp.snort.ADMIN.rules
+  url: 'https://www.botvrij.eu/data/misp.snort.ADMIN.rules'
+- name: Emerging_Threats-compromised_ips
+  url: 'https://rules.emergingthreats.net/blockrules/compromised-ips.txt'
+- name: Spamhaus_DROP_listed
+  url: 'https://www.spamhaus.org/drop/drop.lasso'
+- name: dshield_block
+  url: 'https://feeds.dshield.org/block.txt'
+- name: 3coresec_et-open
+  url: 'https://blacklist.3coresec.net/lists/et-open.txt'
 asnsets:
-- name: bad_asn
+- name: bad_asn-cloud-colo-hosting
   url: 'https://raw.githubusercontent.com/brianhama/bad-asn-list/master/bad-asn-list.csv'
+treatfeeds_recurse_json:
+- name: osint
+  url: 'https://www.circl.lu/doc/misp/feed-osint/'
