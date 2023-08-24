@@ -307,7 +307,7 @@ if __name__ == "__main__":
     parser.add_argument("-x", "--xlsx", dest='xlsx', required=False, action='store_true', help="Output results to a file in xlsx")
     parser.add_argument("-s", "--skip_update", dest='skip_update', required=False,action='store_true', help="I'm in a hurry.. Skip downloading updated lists")
     parser.add_argument("-t", "--htmlOutput", dest='bhtmlOutput', required=False,action='store_true', help="Print output to html and open in browser")
-    parser.add_argument("-l", "--vtLookup", dest='bvtLookup', required=False,action='store_true', help="VirusTotal scoring")
+    parser.add_argument("-l", "--vtLookup", dest='bvtLookup', required=False,action='store_true', help="VirusTotal scoring (requires VT api key)")
      
     args = parser.parse_args()
 
