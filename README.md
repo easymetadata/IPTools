@@ -38,19 +38,22 @@ options:
 **Examples** 
 
 Lookup ip geo info, threat feeds (defined in list.yml), VirusTotal reputation. Output to html that is opened in browser
-``` python .\ipEnrich.py -f .\testlist.txt -l -t
+```
+  python ipEnrich.py -f iplist.txt -l -t
 ```
 ![image](https://github.com/easymetadata/IPTools/assets/5246428/f6f2f9f2-2fad-4834-aa30-de4696a17aa9)
 
 
 
 Geo ip lookups with feed matching 
-```  python3 ipEnrich.py -f file.txt (use a list of ip's from a file)
+```
+  python3 ipEnrich.py -f file.txt (use a list of ip's from a file)
   python3 ipEnrich.py -i IP  (lookup a single ip)
 ```
 
 Only geo ip lookups
-```  python3 ipEnrich.py -j -f file.txt 
+```
+  python3 ipEnrich.py -j -f file.txt 
   python3 ipEnrich.py -j -i IP 
 ```
 
