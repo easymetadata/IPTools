@@ -3,14 +3,15 @@
 This tool provides geo IP information and threat feed mapping of your choosing. It's multithreaded for spead.
 
 **Key features**
--IP geo lookups (requires free geolite2 db's)
--ASN matching based on bad_asn feed
--Threat feed matching (defined in list.yml) - No guarantees of accuracy. Fully customizable
-  -Feeds update every 24hrs by default. You can set it to whatever interval you choose
--VT lookups
--FQDN lookup (note this could alert an adversary)
--CSV, Excel or html outputs
-
+```
+  -IP geo lookups (requires free geolite2 db's)
+  -ASN matching based on bad_asn feed
+  -Threat feed matching (defined in list.yml) - No guarantees of accuracy. Fully customizable
+    -Feeds update every 24hrs by default. You can set it to whatever interval you choose
+  -VT lookups
+  -FQDN lookup (note this could alert an adversary)
+  -CSV, Excel or html outputs
+```
 **Configuration and Feeds**
 
 The list of feeds are defined in the list.yml. Lists are primarily FireHol and misp feeds but can be any ip list.  Feel free to suggest more.
