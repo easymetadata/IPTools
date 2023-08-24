@@ -128,7 +128,7 @@ threat_feeds:
 - name: 3coresec_et-open
   url: 'https://blacklist.3coresec.net/lists/et-open.txt'
 asnsets:
-- name: bad_asn-cloud-colo-hosting
+- name: cloud-colo-managedhosting
   url: 'https://raw.githubusercontent.com/brianhama/bad-asn-list/master/bad-asn-list.csv'
 treatfeeds_recurse_json:
 - name: osint
