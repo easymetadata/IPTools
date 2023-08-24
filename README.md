@@ -8,6 +8,7 @@ This tool provides geo IP information and threat feed mapping of your choosing. 
 -Threat feed matching (defined in list.yml) - No guarantees of accuracy. Fully customizable
   -Feeds update every 24hrs by default. You can set it to whatever interval you choose
 -VT lookups
+-FQDN lookup (note this could alert an adversary)
 -CSV, Excel or html outputs
 
 **Configuration and Feeds**
