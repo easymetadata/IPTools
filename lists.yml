@@ -127,6 +127,21 @@ threat_feeds:
   url: 'https://feeds.dshield.org/block.txt'
 - name: 3coresec_et-open
   url: 'https://blacklist.3coresec.net/lists/et-open.txt'
+- name: iblocklist_onion_router
+  url: 'https://iplists.firehol.org/files/iblocklist_onion_router.netset'
+- name: cybercrime
+  url: 'https://iplists.firehol.org/files/cybercrime.ipset'
+- name: blocklist_de_ssh
+  url: 'https://iplists.firehol.org/files/blocklist_de_ssh.ipset'
+- name: bds_atif
+  url: 'https://iplists.firehol.org/files/bds_atif.ipset'
+- name: iblocklist_ciarmy_malicious
+  url: 'https://iplists.firehol.org/files/iblocklist_ciarmy_malicious.netset'
+- name: php_harvesters_30d
+  url: 'https://iplists.firehol.org/?ipset=php_harvesters_30d'
+asnsets:
+- name: asn-cloud-colo-hosting
+  url: 'https://raw.githubusercontent.com/brianhama/bad-asn-list/master/bad-asn-list.csv'
 asnsets:
 - name: cloud-colo-managedhosting
   url: 'https://raw.githubusercontent.com/brianhama/bad-asn-list/master/bad-asn-list.csv'
