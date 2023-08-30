@@ -66,7 +66,7 @@ def getGeoInfo(IP):
     try:
        # with geoip2.database.Reader('GeoLite2-City.mmdb') as readCity:
             responseCity = readCity.city(IP)
-            #result.append("%s" % responseCity.city.name or "")
+            result.append(f'{responseCity.city.name}')
             result.append(f'{responseCity.country.name}')
     except Exception as e: 
         print(f"[error] geo city: {e}")
@@ -340,7 +340,7 @@ if __name__ == "__main__":
     if getFQDN:
         print("Note: Hostname lookups will increase processing time.")
 
-    lstColumns = ["IP,Country,ASN,ASN Org,FQDN,Indicators,VT"]
+    lstColumns = ["IP,City,Country,ASN,ASN Org,FQDN,Indicators,VT"]
 
     lstResults = []
     with geoip2.database.Reader('GeoLite2-City.mmdb') as readCity:
