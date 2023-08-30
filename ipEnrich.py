@@ -368,10 +368,10 @@ if __name__ == "__main__":
         if not getFQDN:
             df = df.drop('FQDN', axis=1)
             ## open in browser
-        with open("tmpOut1.html", 'w', encoding='utf-8') as f:
+        with open("htmlresults.html", 'w', encoding='utf-8') as f:
             htmOut=df.to_html()
             print(htmOut, file=f)
-        webbrowser.open_new_tab('./tmpOut1.html')
+        webbrowser.open_new_tab('htmlresults.html')
         #print(tabulate(df, tablefmt="pretty", showindex="never"))
     else:
         #print(df.to_string())
