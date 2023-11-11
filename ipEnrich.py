@@ -1,12 +1,8 @@
 #!/usr/bin/python
 # Developed by David Dym @ easymetadata.com 
-# 11/25/2020 Rewrite to make lists into separate yml. Add update to list based on age
-# 06/15/2021 Implemened joblib for faster updating and processing. Cleaned up output with quoting. Refactored code.
-# 07/31/2021 Implemented cidr enumeration for ip networks. IP's will now match against ip network netsets
-# 02/12/2022 Updates and refactoring. Added xlsx output. Updated lists adding new feeds
-# 06/07/2022 Added ASN matching to 'asnsets' such as bad asn lookups.
-# 04/15/2023 Code refactoring / cleanup
 # 08/22/2023 Heavy refactoring for performance. Added html browser output. Added VirusTotal lookup summary. Other fun stuff..
+# 10/21/2023 Refactor output for html, browser and xlsx for cross platform support
+# 11/11/2023 Refactor export options and behavior. Change html output to unique filename. Change whois api fallback in lists.yml. Add initial sqlitedb
 import argparse
 import concurrent.futures
 from datetime import datetime
@@ -16,7 +12,7 @@ import multiprocessing
 import os
 import io
 import pandas as pd
-from pandas.io.excel import ExcelWriter
+from tabulate import tabulate
 from pathlib import Path
 import requests
 import socket
@@ -24,11 +20,16 @@ import sys
 import time
 import warnings
 import yaml
-from tabulate import tabulate
 from geoip2.database import Reader, geoip2
+import geoip2.errors
 from netaddr import IPAddress, IPNetwork
+from ipwhois import IPWhois
+import sqlite3
 from urllib.parse import urlparse
 import webbrowser
+import logging
+
+#import sqlite3
 
 _path = os.path.dirname(os.path.abspath(sys.argv[0]))
 getFQDN = False
@@ -60,56 +61,73 @@ def check_fqdn(ip):
     except:
        return ""
 
-def getGeoInfo(IP):
+def getGeoInfo(ip_address):
     result = [] 
 
     try:
        # with geoip2.database.Reader('GeoLite2-City.mmdb') as readCity:
-            responseCity = readCity.city(IP)
-            result.append(f'{responseCity.city.name}')
+            responseCity = readCity.city(f"{ip_address}")
+            #result.append("%s" % responseCity.city.name or "")
             result.append(f'{responseCity.country.name}')
     except Exception as e: 
         print(f"[error] geo city: {e}")
+        logging.exception(f"[error] geo city: {e}")
         result.append("")
 
     try:
         #with geoip2.database.Reader('GeoLite2-ASN.mmdb') as readASN:
-            responseASN = readASN.asn(IP)
+            responseASN = readASN.asn(ip_address)
 
             #check asn list too
             strASN = f'{responseASN.autonomous_system_number}' or ' '
 
             #check's against ASN lists
-            strASN = check_asn(strASN)
+            strASN = check_asn(f"{strASN}")
 
             #append ASN with ASN lookup result
-            result.append(strASN)
+            result.append(f"{strASN}")
 
             #map ASN Org
             result.append(f'{responseASN.autonomous_system_organization.replace(",","_")}' or ' ')
 
-    except Exception as e: 
-        print(f"[error] geo: {e}")
-        result.append(' ')
-        result.append(' ')
+    except geoip2.errors.AddressNotFoundError as e: 
+        print(f"geo: {ip_address} {e} - api fallback]")
+        #logging.exception(f"geo: {ip_address} {e} not found - fallback to api lookup]")
+        for itm in get_org_info(ip_address):
+            result.append(f"{itm}".replace(",","_"))
+        #result.append(' ')
+        #result.append(' ')
+    except Exception as e:
+         print(f"[error] geo: {e}")
+    #     logging.exception(f"[error] geo: {e}")
 
     return ",".join(result)
 
 #This works as a fallback when we don't find an ASN for an IP in the MaxM*nd ASN db
 def get_org_info(ip_address):
+    result = []
     try:
-        url = f"http://ip-api.com/json/{ip_address}"
+        url = f"http://ipwho.is/{ip_address}"
         response = requests.get(url)
-        json_data = response.json()
-        asn = json_data['asn']
-        org = json_data['org']
-        result = f"{asn},{org}"
+        data = json.loads(response.content)
+        connection_info = data.get("connection")
+        if connection_info:
+            sAsn = connection_info.get("asn")
+            if sAsn:
+                sAsn = check_asn(f'{sAsn}')
+            result.append(sAsn)
+            sOrg = connection_info.get("org")
+            result.append(sOrg)
         return result
     except Exception as e:
         print(f'[error] get_org_info:{e}')
-        return ""
-    finally:
-        print('Used get_or_info')
+        logging.exception(f'[error] get_org_info:{e}')
+
+    result.append("")
+    result.append("")
+    return result
+
+    return result
 
 def get_feeds(force_update, feed, update_interval):
     warnings.filterwarnings('ignore', message='Unverified HTTPS request')
@@ -134,29 +152,34 @@ def get_feeds(force_update, feed, update_interval):
                 os.remove(outFilename)
                 get_feeds(force_update, feed, update_interval)
     except Exception as e:
-        print(f"Error [feed]: {e}")
+        print(f"Error [get_feeds]: {e}")
+        logging.exception(f"Error [get_feeds]: {e}")
 
 def load_feeds() -> dict:
     """
     Load threat feed documents from the cache into memory.
     :param documents: A dictionary of documents containing cached threat feeds.\n    :return: A dictionary of cached threat feeds.
     """
-    for item, doc in documents.items():
-        if "threat_feeds" in item:
-            for feed in doc:
-                # preprocess url
-                a = urlparse(feed['url'])
-                fname = os.path.basename(a.path)
-                fext = ''.join(Path(fname).suffixes)
-                # read in threat feeds from cache
-                fpath = Path('cache', feed['name'] + fext)
-                with open(fpath, 'r', encoding='utf-8') as in_file:
-                    t_list = []
-                    for line in in_file:
-                        if not line.startswith("#", 0, 1):
-                            t_list.append(line.rstrip())
-                threat_feeds[feed['name']] = list(set(t_list))
-    return threat_feeds
+    try:
+        for item, doc in documents.items():
+            if "threat_feeds" in item:
+                for feed in doc:
+                    # preprocess url
+                    a = urlparse(feed['url'])
+                    fname = os.path.basename(a.path)
+                    fext = ''.join(Path(fname).suffixes)
+                    # read in threat feeds from cache
+                    fpath = Path('cache', feed['name'] + fext)
+                    with open(fpath, 'r', encoding='utf-8') as in_file:
+                        t_list = []
+                        for line in in_file:
+                            if not line.startswith("#", 0, 1):
+                                t_list.append(line.rstrip())
+                    threat_feeds[feed['name']] = list(set(t_list))
+        return threat_feeds
+    except Exception as e:
+        print(f"Error [load_feeds]: {e}")
+        logging.exception(f"Error [load_feeds]: {e}")
 
 def load_asn_feeds():
     try:
@@ -174,6 +197,7 @@ def load_asn_feeds():
                 asn_lists[itm['name']] = list(set(t_list))
     except Exception as e:
         print(f"Error [load_asn_feeds]: {e}")
+        logging.exception(f"Error [load_asn_feeds]: {e}")
 
 def setup_feeds(check_update):
     try:
@@ -185,16 +209,18 @@ def setup_feeds(check_update):
                         executor.submit(get_feeds, check_update, itm, update_interval)
     except Exception as err:
         print(f"[error] setup_feeds: {err}")
+        logging.exception(f"[error] setup_feeds: {err}")
 
-def check_asn(asn: dict) -> str:
+def check_asn(asn):
     try:
         for list_name, values in asn_lists.items():
             if asn in "".join(values):
+            #if asn in values:
                 return f"{asn} [{list_name}]"
-        return asn
     except Exception as error:
         print(f"Err [check_asn]: {error}")
-        return ""
+        logging.exception(f"Err [check_asn]: {error}")
+    return f"{asn}"
 
 def vt_is_malicious_ip(ip_address):
     try:
@@ -208,7 +234,7 @@ def vt_is_malicious_ip(ip_address):
         response = requests.get(url, headers=headers)
         data = response.json()
 
-        lDetects = ['malicious','suspicious']
+        #lDetects = ['malicious','suspicious']
 
         if response.status_code == 200:
             if 'data' in data:
@@ -220,7 +246,7 @@ def vt_is_malicious_ip(ip_address):
                         if attributes['last_analysis_stats'][val] > 0:
                             stats.append(f"{val}:{attributes['last_analysis_stats'][val]}")
                     #if any(map(lambda v: v in lDetects, stats)):
-                    return ";".join(stats) + f";rep:{attrVtRep}"
+                    return ";".join(stats) + f",{attrVtRep}"
                 else:
                     return ""  # No analysis data available
             else:
@@ -229,18 +255,19 @@ def vt_is_malicious_ip(ip_address):
             print(f"Error: {data['error']['message']}")
             return ""  # Error occurred while querying the API
     except Exception as err:
+        logging.exception(err)
         print(err)
         return ""
 
-def ipProcess(_ip):
+def ipProcess(ip):
     
-    ip = _ip.rstrip()
-    row = ip + ","
+    #ip = ip.rstrip()
+    row = f"{ip},"
     try:
         row += getGeoInfo(ip)
         
         if getFQDN:
-            row += "," + check_fqdn(ip)
+            row += f",{check_fqdn(ip)}"
         else:
             row += ","
 
@@ -251,24 +278,24 @@ def ipProcess(_ip):
 
             for kLstName, vLstValues in threat_feeds.items():
                 if ip in vLstValues:
-                    fhresult += f"{kLstName}|"
+                    fhresult += f"{kLstName} | "
                     bHitfound = True
 
-            #No IP hit yet - now let's search CIDR sub sets
+            #No IP hit yet - now let's search the dictionary of calculated CIDR sub sets
             if not bHitfound:
                 try:
                     for kLstName, vLstValues in dicListCIDRS.items():
                         for item in vLstValues:
                             if ip in IPNetwork(item):
-                                fhresult += f"{kLstName} (cidr)|"
+                                fhresult += f"{kLstName} (cidr) | "
                                 bHitfound = True
                 except Exception as e:
-                    print(f"[error] CIDR matching: {e}")
+                    logging.debug(f"[error] CIDR matching {ip}: {e}")
             #If we have hits from feeds clean up the end
             if fhresult:
-                row += "," + fhresult.rstrip("|") +""
+                row += "," + fhresult.rstrip(" | ") +""
             else:
-                row += ", "
+                row += ","
 
         if bCheckVT:
             vtResults = vt_is_malicious_ip(ip)
@@ -276,6 +303,7 @@ def ipProcess(_ip):
                 row += f", {vtResults}"
 
     except Exception as err:
+        logging.exception(err)
         print(err)
 
     finally:
@@ -303,11 +331,12 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--HitsOnly", dest='bHitsOnly', required=False,action='store_true', help="Only show hits from threat feeds 'True'")
     parser.add_argument("-j", "--SkipFeeds", dest='bSkipFeeds', required=False,action='store_false', help="Skip threat feed matching")
     parser.add_argument("-r", "--FQDN", dest='FQDN', required=False,action='store_true', help="Resolve FQDN. Provide 'True'")
-    parser.add_argument("-o", "--outfile", dest='outfile', required=False, help="Output file name [default CSV]")
+    parser.add_argument("-c", "--csv", dest='csv', required=False, action='store_true',help="Output results to CSV")
     parser.add_argument("-x", "--xlsx", dest='xlsx', required=False, action='store_true', help="Output results to a file in xlsx")
+    parser.add_argument("-d", "--sqlite", dest='sqlite', required=False, action='store_true', help="Output results to a sqlite db")
     parser.add_argument("-s", "--skip_update", dest='skip_update', required=False,action='store_true', help="I'm in a hurry.. Skip downloading updated lists")
-    parser.add_argument("-t", "--htmlOutput", dest='bhtmlOutput', required=False,action='store_true', help="Print output to html and open in browser")
-    parser.add_argument("-l", "--vtLookup", dest='bvtLookup', required=False,action='store_true', help="VirusTotal scoring (requires VT api key)")
+    parser.add_argument("-t", "--htmlOutput", dest='bhtmlOutput', required=False,action='store_true', help="Output to html in a browser")
+    parser.add_argument("-l", "--vtLookup", dest='bvtLookup', required=False,action='store_true', help="VirusTotal scoring")
      
     args = parser.parse_args()
 
@@ -334,20 +363,24 @@ if __name__ == "__main__":
     VTsleepTime = int(_getListKeyVal(documents, "api_keys","VTsleepTime"))
 
     #Generate a sub list of cidr ranges from master list to speed things up later.
+    print("Populating list of items from feeds with cidr ranges..")
     for key, val in threat_feeds.items():
         dicListCIDRS[key] = [item for (item) in val if '/' in item]
         
     if getFQDN:
-        print("Note: Hostname lookups will increase processing time.")
+        print("Note: Reverse lookups will increase processing time.")
 
-    lstColumns = ["IP,City,Country,ASN,ASN Org,FQDN,Indicators,VT"]
+    lstColumns = ["IP,Country,ASN,ASN Org,FQDN,Indicators,VT,VT Rep"]
 
     lstResults = []
     with geoip2.database.Reader('GeoLite2-City.mmdb') as readCity:
         with geoip2.database.Reader('GeoLite2-ASN.mmdb') as readASN:
             if args.file:
-                with open(args.file, "r", encoding='utf-8') as f:
-                    lstResults = Parallel(n_jobs=multiprocessing.cpu_count(),prefer='threads')(delayed(ipProcess)(ip) for ip in f)
+                with open(args.file, "r", encoding='utf-8') as file:
+                    #Remove trailing \n
+                    lstIps = [line.rstrip() for line in file.readlines()]
+                    #Loop through the list of IP's using a thread process
+                    lstResults = Parallel(n_jobs=multiprocessing.cpu_count(),prefer='threads')(delayed(ipProcess)(ip) for ip in lstIps)
             elif args.ip:
                 lstResults.append(ipProcess(args.ip.rstrip()))
             else:
@@ -361,33 +394,46 @@ if __name__ == "__main__":
 
     #Output results to console
     df = pd.read_csv(io.StringIO("\n".join(lstResults)))
-    df.fillna("",inplace=True)
 
+    #Remove columns without values
+    df.dropna(axis=1, how='all', inplace=True)
+
+    #Fills empty values to avoid NaN
+    df = df.where(pd.notna(df), '')
+
+    # create a Styler
+    df_styled = df.style.set_properties(
+        **{'font-size': '10pt','background-color': '#edeeef','border-color': 'black','border-style' :'solid' ,'border-width': '0px','border-collapse':'collapse'}
+    ).hide(axis="index")
+    
+    #Setup output filename
+    current_directory = os.getcwd()
+    tmpStrTime = time.strftime('%Y%m%d%-M%-S')
+    tmpOutFileName = current_directory + f"/results{tmpStrTime}"
+    
+    #print final results to console if anything other than HTML output
+    if not args.bhtmlOutput:
+        print(tabulate(df,df.columns, tablefmt="simple",showindex=False))
+        print("")
+
+    #Output to file options
     if args.bhtmlOutput:
-        #df = df.drop('City', axis=1)
-        if not getFQDN:
-            df = df.drop('FQDN', axis=1)
-            ## open in browser
-        with open("htmlresults.html", 'w', encoding='utf-8') as f:
-            htmOut=df.to_html()
-            print(htmOut, file=f)
-        webbrowser.open_new_tab('htmlresults.html')
-        #print(tabulate(df, tablefmt="pretty", showindex="never"))
-    else:
-        #print(df.to_string())
-        print("\r\n" + "\r\n".join(lstResults).replace(',','    '))
-
-
-    #Write results to file
-    if args.outfile:
-        if not args.xlsx:
-            with open(args.outfile, 'w', encoding='utf-8') as f:
-                print("\n".join(lstResults), file=f)
-            print("Results written to %s" % args.outfile)
+        #If output to html is selected write to html file and open a new browser window 
+        tmpOutHtml = tmpOutFileName + '.html'   
+        with open(tmpOutHtml, 'w', encoding='utf-8') as f:
+            print(df_styled.to_html(), file=f)
+        webbrowser.open_new('file://' + tmpOutHtml)
+        print(f"Results written to {tmpOutHtml}")
+    if args.csv:
+        df.to_csv(f"{tmpOutFileName}.csv", index=False,header=True)
+        print(f"Results written to {tmpOutFileName}.csv")
     if args.xlsx:
-        df = pd.read_csv(io.StringIO("\n".join(lstResults)))
-        writer = pd.ExcelWriter(args.outfile.replace('.csv','') + '.xlsx', engine='xlsxwriter')
-        df.to_excel(writer, sheet_name='results', index=False, header=True)
-        writer.save()
+        df_styled.to_excel(f"{tmpOutFileName}.xlsx", sheet_name='results', index=False, header=True)
+        print(f"Results written to {tmpOutFileName}.xlsx")
+    if args.sqlite:
+        #save results to sqlitedb
+        conn = sqlite3.connect(f"{tmpOutFileName}.sqlitedb")
+        df.to_sql('lookups', conn, if_exists='append', index=False)
+        print(f"Results written to {tmpOutFileName}.sqlitedb")
 
 print ("\n Lookups complete.")
