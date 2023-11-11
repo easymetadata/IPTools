@@ -4,13 +4,13 @@ This tool provides geo IP information and threat feed mapping of your choosing. 
 
 **Key features**
 ```
-  -IP geo lookups (requires free geolite2 db's)
-  -ASN matching based on bad_asn feed
-  -Threat feed matching (defined in list.yml) - No guarantees of accuracy. Fully customizable
+  IP geo lookups (requires free geolite2 db's)
+  ASN matching based on bad_asn feed
+  Threat feed matching (defined in list.yml) - No guarantees of accuracy. Fully customizable
     -Feeds update every 24hrs by default. You can set it to whatever interval you choose
-  -VT lookups
-  -FQDN lookup (note this could alert an adversary)
-  -CSV, Excel or html outputs
+  VT lookups
+  Reverse lookup (note this could alert on DNS)
+  Output results to CSV, Excel, HTML or Sqlite
 ```
 **Configuration and Feeds**
 
@@ -34,6 +34,8 @@ options:
   -s, --skip_update     I'm in a hurry.. Skip downloading updated lists
   -t, --htmlOutput      Output to html in a browser
   -l, --vtLookup        VirusTotal scoring
+
+*Note: Output with empty columns are removed automatically
 ```
 
 **Examples** 
