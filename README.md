@@ -17,7 +17,7 @@ This tool provides geo IP information and threat feed mapping of your choosing. 
 The list of feeds are defined in the list.yml. Lists are primarily FireHol and misp feeds but can be any ip list.  Feel free to suggest more.
 
 ```
-usage: ipEnrich.py [-h] [-f FILE] [-i IP] [-n] [-j] [-r] [-o OUTFILE] [-x] [-s] [-t] [-l]
+usage: ipEnrich.py [-h] [-f FILE] [-i IP] [-n] [-j] [-r] [-c] [-x] [-d] [-s] [-t] [-l]
 
 A tool to gather information garding IPs
 
@@ -28,17 +28,29 @@ options:
   -n, --HitsOnly        Only show hits from threat feeds 'True'
   -j, --SkipFeeds       Skip threat feed matching
   -r, --FQDN            Resolve FQDN. Provide 'True'
-  -o OUTFILE, --outfile OUTFILE
-                        Output file name [default CSV]
+  -c, --csv             Output results to CSV
   -x, --xlsx            Output results to a file in xlsx
+  -d, --sqlite          Output results to a sqlite db
   -s, --skip_update     I'm in a hurry.. Skip downloading updated lists
-  -t, --htmlOutput      Print output to html and open in browser
-  -l, --vtLookup        VirusTotal scoring (requires VT api key)
+  -t, --htmlOutput      Output to html in a browser
+  -l, --vtLookup        VirusTotal scoring
 ```
 
 **Examples** 
 
-Lookup ip geo info, threat feeds (defined in list.yml), VirusTotal reputation. Output to html that is opened in browser
+Console output (basic options single ip):
+```
+python ipEnrich.py -i 1.1.1.1
+                 
+Fetching new and updated feeds... [Update older than 24 hrs]
+Populating list of items from feeds with cidr ranges..
+IP       Country      ASN  ASN Org
+-------  ---------  -----  -------------
+1.1.1.1  Australia  13335  CLOUDFLARENET
+```
+
+Lookup ip info with threat feeds (defined in list.yml), VirusTotal reputation. Output to html that is opened in browser.
+  Note: VT needs your api key in lists.yml. For the free tier of VT you get capped at 500 lookups a day.
 ```
   python ipEnrich.py -f iplist.txt -l -t
 ```
@@ -58,9 +70,9 @@ Only geo ip lookups
   python3 ipEnrich.py -j -i IP 
 ```
 
-For ip geo lookups with threat feeds with xlsx output 
+For lookups with output in various formats csv, xlsx and sqlite 
 ```
-python3 ipEnrich.py -f test_iplist_small.txt -o results111.csv -x 
+python3 ipEnrich.py -f ip_list.txt -c -x -d   
 ```
 
 # Disposable email domain check
