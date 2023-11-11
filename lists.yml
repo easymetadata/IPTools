@@ -1,6 +1,6 @@
 api_sources:
 - name: asn_lookup2
-  url: 'http://ip-api.com/json/'
+  url: 'http://ipwho.is/'
 - name: asn_lookup1
   url: 'https://ip2c.org/'
 api_keys:
@@ -23,6 +23,8 @@ geolite2:
 threat_feeds:
 - name: tor_exit_node
   url: 'https://check.torproject.org/torbulkexitlist'
+- name: tor_exits_30d
+  url: 'https://iplists.firehol.org/files/tor_exits_30d.ipset'
 - name: fh_level1
   url: 'https://raw.githubusercontent.com/ktsaou/blocklist-ipsets/master/firehol_level1.netset'
 - name: fh_level2
@@ -141,9 +143,6 @@ threat_feeds:
   url: 'https://iplists.firehol.org/?ipset=php_harvesters_30d'
 asnsets:
 - name: asn-cloud-colo-hosting
-  url: 'https://raw.githubusercontent.com/brianhama/bad-asn-list/master/bad-asn-list.csv'
-asnsets:
-- name: cloud-colo-managedhosting
   url: 'https://raw.githubusercontent.com/brianhama/bad-asn-list/master/bad-asn-list.csv'
 treatfeeds_recurse_json:
 - name: osint
