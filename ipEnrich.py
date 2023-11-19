@@ -3,6 +3,7 @@
 # 08/22/2023 Heavy refactoring for performance. Added html browser output. Added VirusTotal lookup summary. Other fun stuff..
 # 10/21/2023 Refactor output for html, browser and xlsx for cross platform support
 # 11/11/2023 Refactor export options and behavior. Change html output to unique filename. Change whois api fallback in lists.yml. Add initial sqlitedb
+# 11/19/2023 Bugfix for strtime format error on windows systems
 import argparse
 import concurrent.futures
 from datetime import datetime
@@ -337,14 +338,15 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--skip_update", dest='skip_update', required=False,action='store_true', help="I'm in a hurry.. Skip downloading updated lists")
     parser.add_argument("-t", "--htmlOutput", dest='bhtmlOutput', required=False,action='store_true', help="Output to html in a browser")
     parser.add_argument("-l", "--vtLookup", dest='bvtLookup', required=False,action='store_true', help="VirusTotal scoring")
-     
+    parser.add_argument("-b", "--json", dest='json', required=False,action='store_true', help="Output results to file in json")
+
     args = parser.parse_args()
 
     getFQDN = args.FQDN
     bHitsOnly = args.bHitsOnly
     bSkipFeeds = args.bSkipFeeds
     bCheckVT = args.bvtLookup
-    strRptDT = time.strftime("%Y%m%d_%H%M%S")
+    strRptDT = int(time.strftime('%Y%m%d%H%M%S'))
     
     #Add cache folder for feeds if doesn't exist
     if not os.path.exists("cache"):
@@ -408,8 +410,8 @@ if __name__ == "__main__":
     
     #Setup output filename
     current_directory = os.getcwd()
-    tmpStrTime = time.strftime('%Y%m%d%-M%-S')
-    tmpOutFileName = current_directory + f"/results{tmpStrTime}"
+    #tmpStrTime = time.strftime('%Y%m%d%H%M%S')
+    tmpOutFileName = current_directory + f"/results{strRptDT}"
     
     #print final results to console if anything other than HTML output
     if not args.bhtmlOutput:
@@ -430,6 +432,9 @@ if __name__ == "__main__":
     if args.xlsx:
         df_styled.to_excel(f"{tmpOutFileName}.xlsx", sheet_name='results', index=False, header=True)
         print(f"Results written to {tmpOutFileName}.xlsx")
+    if args.json:
+        df.to_json(f"{tmpOutFileName}.json", index=False)
+        print(f"Results written to {tmpOutFileName}.json")
     if args.sqlite:
         #save results to sqlitedb
         conn = sqlite3.connect(f"{tmpOutFileName}.sqlitedb")
