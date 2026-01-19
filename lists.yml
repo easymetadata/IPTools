@@ -1,13 +1,13 @@
 api_sources:
-- name: asn_lookup2
-  url: 'http://ipwho.is/'
 - name: asn_lookup1
-  url: 'https://ip2c.org/'
+  url: 'http://ipwho.is/{ip}'
+- name: asn_lookup2
+  url: 'https://free.freeipapi.com/api/json/{ip}'
 api_keys:
 - name: GEOLITE2_API_KEY
-  value: 'ADD_KEY_HERE'
+  value: 'key'
 - name: VIRUSTOTAL_API_KEY
-  value: 'ADD_KEY_HERE'
+  value: 'key'
 - name: VTsleepTime
   value: '30'
 geolite2:
@@ -79,18 +79,12 @@ threat_feeds:
   url: 'https://iplists.firehol.org/files/et_tor.ipset'
 - name: myip.ms
   url: 'https://iplists.firehol.org/files/myip.ipset'
-- name: socks4_proxies
+- name: monosans-socks4_proxies
   url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks4.txt'
-- name: socks5_proxies
+- name: monosans-socks5_proxies
   url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt'
-- name: http_proxies
+- name: monosans-http_proxies
   url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt'
-- name: anonymous_http_proxies
-  url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies_anonymous/http.txt'
-- name: anonymous_socks4_proxies
-  url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies_anonymous/socks4.txt'
-- name: anonymous_socks5_proxies
-  url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies_anonymous/socks5.txt'
 - name: socks_proxy
   url: 'https://iplists.firehol.org/files/socks_proxy.ipset'
 - name: socks_proxy_30d
@@ -111,8 +105,22 @@ threat_feeds:
   url: 'https://www.spamhaus.org/drop/drop.txt'
 - name: sspwauth
   url: 'https://dataplane.org/sshpwauth.txt'
+- name: ipsum_level1
+  url: 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/1.txt'
+- name: ipsum_level2
+  url: 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/2.txt'
+- name: ipsum_level3
+  url: 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/3.txt'
 - name: ipsum_level4
   url: 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/4.txt'
+- name: ipsum_level5
+  url: 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/5.txt'
+- name: ipsum_level6
+  url: 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/6.txt'
+- name: ipsum_level7
+  url: 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/7.txt'
+- name: ipsum_level8
+  url: 'https://raw.githubusercontent.com/stamparm/ipsum/master/levels/8.txt'
 - name: botvrij_ioclist.ip-dst
   url: 'https://www.botvrij.eu/data/ioclist.ip-dst'
 - name: botvrij_misp.text_ip-dst
@@ -127,8 +135,6 @@ threat_feeds:
   url: 'https://www.spamhaus.org/drop/drop.lasso'
 - name: dshield_block
   url: 'https://feeds.dshield.org/block.txt'
-- name: 3coresec_et-open
-  url: 'https://blacklist.3coresec.net/lists/et-open.txt'
 - name: iblocklist_onion_router
   url: 'https://iplists.firehol.org/files/iblocklist_onion_router.netset'
 - name: cybercrime
@@ -141,6 +147,15 @@ threat_feeds:
   url: 'https://iplists.firehol.org/files/iblocklist_ciarmy_malicious.netset'
 - name: php_harvesters_30d
   url: 'https://iplists.firehol.org/?ipset=php_harvesters_30d'
+- name: OpenProxyList-HTTP
+  url: 'https://openproxylist.xyz/https.txt'
+- name: OpenProxyList-HTTPS
+  url: 'https://openproxylist.xyz/https.txt'
+- name: OpenProxyList-SOCKS4
+  url: 'https://openproxylist.xyz/socks4.txt'
+- name: OpenProxyList-SOCKS5
+  url: 'https://openproxylist.xyz/socks5.txt'
+
 asnsets:
 - name: asn-cloud-colo-hosting
   url: 'https://raw.githubusercontent.com/brianhama/bad-asn-list/master/bad-asn-list.csv'
