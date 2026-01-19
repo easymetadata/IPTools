@@ -97,7 +97,7 @@ threat_feeds:
   url: 'https://iplists.firehol.org/files/blocklist_net_ua.ipset'
 - name: Experimental_IOC_Tweets_threatview
   url: 'https://threatview.io/Downloads/Experimental-IOC-Tweets.txt'
-- name: ThreatView-CobaltStrike_C2=
+- name: ThreatView-CobaltStrike_C2
   url: 'https://threatview.io/Downloads/High-Confidence-CobaltStrike-C2%20-Feeds.txt'
 - name: IP_Blocklist_threatview
   url: 'https://threatview.io/Downloads/IP-High-Confidence-Feed.txt'
@@ -161,4 +161,5 @@ asnsets:
   url: 'https://raw.githubusercontent.com/brianhama/bad-asn-list/master/bad-asn-list.csv'
 treatfeeds_recurse_json:
 - name: osint
+
   url: 'https://www.circl.lu/doc/misp/feed-osint/'
