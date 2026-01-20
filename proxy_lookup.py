@@ -1,14 +1,16 @@
 #!/usr/bin/python
 # Developed by David Dym @ easymetadata.com 
 # Version 1.0
-# Date: 2025-01-27
+# Date: 2026-01-19
 # This module contains utility functions for IP proxy lookup using IP2Proxy data
 
 import csv
 import ipaddress
 import logging
+import multiprocessing
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple, List
@@ -21,6 +23,46 @@ try:
 except ImportError:
     IP2PROXY_AVAILABLE = False
     logging.warning("IP2Proxy library not available. CSV-based lookup will be used.")
+
+def _process_proxy_chunk(args_tuple):
+    """
+    Process a chunk of IPs for proxy lookup. Must be at module level for multiprocessing.
+
+    Args:
+        args_tuple: Tuple of (ip_chunk, data_path, use_csv)
+
+    Returns:
+        List[ProxyResult]: List of proxy lookup results for the chunk
+    """
+    ip_chunk, data_path, use_csv = args_tuple
+    results = []
+
+    try:
+        # Create a local ProxyLookup instance for this worker
+        lookup = ProxyLookup(data_path, use_csv=use_csv)
+
+        for ip in ip_chunk:
+            try:
+                result = lookup.lookup_proxy(ip)
+                results.append(result)
+            except Exception as e:
+                logging.error(f"Error processing IP {ip}: {e}")
+                failed_result = ProxyResult(ip=ip)
+                failed_result.notes = f"Processing failed: {e}"
+                results.append(failed_result)
+
+        lookup.close()
+
+    except Exception as e:
+        logging.error(f"Error initializing lookup in worker: {e}")
+        # Return failed results for all IPs in chunk
+        for ip in ip_chunk:
+            failed_result = ProxyResult(ip=ip)
+            failed_result.notes = f"Worker initialization failed: {e}"
+            results.append(failed_result)
+
+    return results
+
 
 # Define Result class to match project structure
 class ProxyResult:
@@ -51,21 +93,22 @@ class ProxyLookup:
     Supports both BIN database files and CSV data files.
     """
     
-    def __init__(self, data_path: str = "IP2PROXY-LITE-PX12", use_bin: bool = False):
+    def __init__(self, data_path: str = "IP2PROXY-LITE-PX12", use_csv: bool = False):
         """
         Initialize the proxy lookup utility.
-        
+
         Args:
             data_path (str): Path to IP2Proxy data directory or BIN file
-            use_bin (bool): Whether to use BIN database (if available) or CSV
+            use_csv (bool): Force CSV lookup instead of BIN (BIN is default and faster)
         """
         self.data_path = Path(data_path)
-        self.use_bin = use_bin and IP2PROXY_AVAILABLE
+        # Use BIN by default if available, unless CSV is explicitly requested
+        self.use_bin = IP2PROXY_AVAILABLE and not use_csv
         self.db = None
         self.csv_data = None
         self.csv_columns = []
-        
-        # Initialize based on available data
+
+        # Initialize based on available data - prefer BIN for performance
         if self.use_bin:
             self._init_bin_database()
         else:
@@ -283,36 +326,112 @@ class ProxyLookup:
         
         return result
     
-    def batch_lookup(self, ip_addresses: List[str]) -> List[ProxyResult]:
+    def batch_lookup(self, ip_addresses: List[str], num_processes: int = None,
+                      chunk_size: int = None, show_progress: bool = True) -> List[ProxyResult]:
         """
-        Perform batch proxy lookup for multiple IP addresses.
-        
+        Perform batch proxy lookup for multiple IP addresses using multiprocessing.
+
         Args:
             ip_addresses (List[str]): List of IP addresses to lookup
-            
+            num_processes (int): Number of processes to use (default: auto-detect)
+            chunk_size (int): Size of IP chunks for processing (default: auto-calculate)
+            show_progress (bool): Whether to show progress output
+
         Returns:
             List[ProxyResult]: List of proxy lookup results
         """
-        results = []
-        
-        for ip in ip_addresses:
-            result = self.lookup_proxy(ip)
-            results.append(result)
-            
-        return results
+        start_time = time.time()
+
+        if not ip_addresses:
+            return []
+
+        # For small batches, use single-threaded processing
+        if len(ip_addresses) < 10:
+            results = []
+            for ip in ip_addresses:
+                result = self.lookup_proxy(ip)
+                results.append(result)
+            elapsed = time.time() - start_time
+            if show_progress:
+                print(f'Batch lookup completed in {elapsed:.2f} seconds ({len(results)} IPs)')
+            return results
+
+        # Determine number of processes
+        if num_processes is None:
+            num_processes = min(multiprocessing.cpu_count(), len(ip_addresses))
+        else:
+            num_processes = min(num_processes, len(ip_addresses))
+
+        # Calculate chunk size
+        if chunk_size is None:
+            chunk_size = max(1, min(50, len(ip_addresses) // (num_processes * 2)))
+
+        if show_progress:
+            print(f'Using {num_processes} processes with chunk size {chunk_size}')
+
+        # Create chunks of IPs
+        ip_chunks = [ip_addresses[i:i + chunk_size] for i in range(0, len(ip_addresses), chunk_size)]
+
+        if show_progress:
+            print(f'Created {len(ip_chunks)} chunks for processing...')
+
+        # Prepare arguments for worker function
+        data_path_str = str(self.data_path)
+        use_csv = not self.use_bin  # Invert: use_csv=True means don't use BIN
+
+        try:
+            with multiprocessing.Pool(processes=num_processes, maxtasksperchild=100) as pool:
+                total_chunks = len(ip_chunks)
+                chunk_results = []
+
+                # Process chunks with progress tracking
+                for i, chunk_result in enumerate(pool.imap(
+                    _process_proxy_chunk,
+                    [(chunk, data_path_str, use_csv) for chunk in ip_chunks]
+                )):
+                    chunk_results.append(chunk_result)
+                    if show_progress and (i + 1) % max(1, total_chunks // 10) == 0:
+                        print(f'Progress: {i + 1}/{total_chunks} chunks completed ({(i + 1) * 100 // total_chunks}%)')
+
+                # Flatten results from all chunks
+                results = []
+                for chunk_result in chunk_results:
+                    results.extend(chunk_result)
+
+                elapsed = time.time() - start_time
+                if show_progress:
+                    ips_per_sec = len(results) / elapsed if elapsed > 0 else 0
+                    print(f'Processed {len(results)} IPs in {elapsed:.2f} seconds ({ips_per_sec:.1f} IPs/sec)')
+
+                return results
+
+        except Exception as e:
+            logging.error(f'Error during multiprocessing: {e}')
+            if show_progress:
+                print(f'Multiprocessing failed, falling back to single-threaded: {e}')
+
+            # Fallback to single-threaded processing
+            results = []
+            for ip in ip_addresses:
+                result = self.lookup_proxy(ip)
+                results.append(result)
+
+            elapsed = time.time() - start_time
+            if show_progress:
+                ips_per_sec = len(results) / elapsed if elapsed > 0 else 0
+                print(f'Processed {len(results)} IPs in {elapsed:.2f} seconds ({ips_per_sec:.1f} IPs/sec)')
+            return results
     
-    def get_proxy_summary(self, ip_addresses: List[str]) -> Dict:
+    def get_proxy_summary(self, results: List[ProxyResult]) -> Dict:
         """
-        Get summary statistics for proxy detection across multiple IPs.
-        
+        Get summary statistics for proxy detection from results.
+
         Args:
-            ip_addresses (List[str]): List of IP addresses to analyze
-            
+            results (List[ProxyResult]): List of proxy lookup results
+
         Returns:
             Dict: Summary statistics
         """
-        results = self.batch_lookup(ip_addresses)
-        
         total_ips = len(results)
         proxy_count = sum(1 for r in results if r.is_proxy)
         proxy_types = {}
@@ -376,33 +495,35 @@ class ProxyLookup:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IP Proxy Lookup Report</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding-top: 70px; background-color: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        #nav-ribbon { position: fixed; top: 0; left: 0; width: 100%; background-color: #2c3e50; padding: 10px 0; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; }
-        .nav-btn { display: inline-block; color: white; text-decoration: none; padding: 8px 20px; margin: 0 5px; border-radius: 20px; background-color: rgba(255,255,255,0.1); transition: background 0.3s; font-size: 14px; }
+        /* Optimized for 1920x1080 screens */
+        body { font-family: Arial, sans-serif; font-size: 11px; margin: 0; padding-top: 50px; background-color: #f5f5f5; }
+        .container { max-width: 1880px; margin: 0 auto; background-color: white; padding: 12px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        #nav-ribbon { position: fixed; top: 0; left: 0; width: 100%; background-color: #2c3e50; padding: 6px 0; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 1000; }
+        .nav-btn { display: inline-block; color: white; text-decoration: none; padding: 5px 14px; margin: 0 4px; border-radius: 15px; background-color: rgba(255,255,255,0.1); transition: background 0.3s; font-size: 11px; }
         .nav-btn:hover { background-color: #007bff; }
-        .section-anchor { scroll-margin-top: 80px; }
-        .distribution-wrapper { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 20px; }
-        .distribution-col { flex: 1; min-width: 300px; }
-        .compact-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        .compact-table th { background-color: #e9ecef; color: #495057; padding: 8px; text-align: left; border-bottom: 2px solid #dee2e6; }
-        .compact-table td { padding: 6px 8px; border-bottom: 1px solid #dee2e6; }
+        .section-anchor { scroll-margin-top: 60px; }
+        .distribution-wrapper { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+        .distribution-col { flex: 1; min-width: 220px; }
+        .compact-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        .compact-table th { background-color: #e9ecef; color: #495057; padding: 4px 6px; text-align: left; border-bottom: 2px solid #dee2e6; }
+        .compact-table td { padding: 3px 6px; border-bottom: 1px solid #dee2e6; }
         .compact-table tr:last-child td { border-bottom: none; }
-        h1 { color: #333; text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
-        h2 { color: #555; margin-top: 30px; }
-        .summary-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
-        .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; }
-        .stat-number { font-size: 2em; font-weight: bold; margin-bottom: 5px; }
-        .stat-label { font-size: 0.9em; opacity: 0.9; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #007bff; color: white; font-weight: bold; }
+        h1 { color: #333; text-align: center; border-bottom: 2px solid #007bff; padding-bottom: 8px; font-size: 18px; margin: 10px 0; }
+        h2 { color: #555; margin-top: 16px; font-size: 14px; }
+        h3 { font-size: 12px; margin: 8px 0; }
+        .summary-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 12px 0; }
+        .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px; border-radius: 6px; text-align: center; }
+        .stat-number { font-size: 1.5em; font-weight: bold; margin-bottom: 3px; }
+        .stat-label { font-size: 0.85em; opacity: 0.9; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0; box-shadow: 0 1px 6px rgba(0,0,0,0.1); }
+        th, td { padding: 4px 6px; text-align: left; border-bottom: 1px solid #ddd; font-size: 10px; }
+        th { background-color: #007bff; color: white; font-weight: bold; white-space: nowrap; }
         tr:nth-child(even) { background-color: #f8f9fa; }
         tr:hover { background-color: #e9ecef; }
         .proxy-yes { background-color: #d4edda; color: #155724; font-weight: bold; }
         .proxy-no { background-color: #f8d7da; color: #721c24; font-weight: bold; }
-        .timestamp { text-align: center; color: #666; font-style: italic; margin-top: 20px; }
-        .filter-input { width: 90%; padding: 5px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9em; box-sizing: border-box; }
+        .timestamp { text-align: center; color: #666; font-style: italic; margin-top: 12px; font-size: 10px; }
+        .filter-input { width: 90%; padding: 3px; margin-top: 3px; border: 1px solid #ddd; border-radius: 3px; font-size: 9px; box-sizing: border-box; }
     </style>
     <script>
         function filterTable() {
@@ -652,16 +773,20 @@ def main():
     parser.add_argument('--file', '-f', help='File containing IP addresses (one per line)')
     parser.add_argument('--data-path', '-d', default='IP2PROXY-LITE-PX12', 
                        help='Path to IP2Proxy data directory')
-    parser.add_argument('--use-bin', action='store_true', 
-                       help='Use BIN database if available')
+    parser.add_argument('--use-csv', action='store_true',
+                       help='Use CSV database instead of BIN (BIN is faster and used by default)')
     parser.add_argument('--summary', '-s', action='store_true',
                        help='Show summary statistics for batch lookups')
-    parser.add_argument('--html', action='store_true',
-                       help='Generate HTML table output')
+    parser.add_argument('--no-html', action='store_true',
+                       help='Disable HTML report generation (HTML is generated by default)')
     parser.add_argument('--output-file', '-o', help='Output file for HTML results')
+    parser.add_argument('--processes', '-p', type=int, default=None,
+                       help='Number of processes for multiprocessing (default: auto-detect)')
+    parser.add_argument('--chunk-size', '-g', type=int, default=None,
+                       help='Chunk size for multiprocessing (default: auto-calculate)')
     parser.add_argument('--verbose', '-v', action='store_true',
                        help='Verbose output')
-    
+
     args = parser.parse_args()
     
     # Setup logging
@@ -669,20 +794,30 @@ def main():
     logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s - %(message)s')
     
     try:
-        with ProxyLookup(args.data_path, args.use_bin) as lookup:
+        with ProxyLookup(args.data_path, use_csv=args.use_csv) as lookup:
+            # Show which database mode is being used
+            db_mode = "BIN (fast)" if lookup.use_bin else "CSV (slow)"
+            print(f'Database mode: {db_mode}')
+
             if args.file:
                 # Batch lookup from file
                 with open(args.file, 'r') as f:
                     ip_addresses = [line.strip() for line in f if line.strip()]
+
+                print(f'Items to process: {len(ip_addresses)}')
+
+                # Get results using chunk-based multiprocessing
+                results = lookup.batch_lookup(
+                    ip_addresses,
+                    num_processes=args.processes,
+                    chunk_size=args.chunk_size
+                )
+                summary = lookup.get_proxy_summary(results)
                 
-                # Get results and summary for both summary and HTML output
-                results = lookup.batch_lookup(ip_addresses)
-                summary = lookup.get_proxy_summary(ip_addresses)
-                
-                if args.html:
-                    # Generate HTML report
+                if not args.no_html:
+                    # Generate HTML report (default behavior)
                     html_content = lookup.generate_html_report(results, summary)
-                    
+
                     if args.output_file:
                         # Write to specified output file
                         with open(args.output_file, 'w', encoding='utf-8') as f:
@@ -727,8 +862,8 @@ def main():
                         for threat, count in summary['proxy_threats'].items():
                             print(f"  {threat}: {count}")
                 
-                if not args.html and not args.summary:
-                    # Display individual results in console
+                if args.no_html and not args.summary:
+                    # Display individual results in console (only when HTML is disabled)
                     for result in results:
                         print(f"\nIP: {result.ip}")
                         print(f"  Proxy: {'Yes' if result.is_proxy else 'No'}")
