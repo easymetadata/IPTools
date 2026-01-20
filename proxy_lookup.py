@@ -11,6 +11,7 @@ import multiprocessing
 import os
 import sys
 import time
+import webbrowser
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple, List
@@ -571,6 +572,8 @@ class ProxyLookup:
                 tr[i].style.display = display ? "" : "none";
             }
         }
+        // Run filter on page load to apply default "Show Interesting Only"
+        window.onload = function() { filterTable(); };
     </script>
 </head>
 <body>
@@ -673,7 +676,7 @@ class ProxyLookup:
         html.append(f"""
         <h2 id="detailed" class="section-anchor">Detailed Results ({len(results)} IPs)</h2>
         <div style="margin-bottom: 10px;">
-            <label><input type="checkbox" id="showInterestingOnly" onchange="filterTable()"> Show Interesting Only (rows with extra data)</label>
+            <label><input type="checkbox" id="showInterestingOnly" onchange="filterTable()" checked> Show Interesting Only (rows with extra data)</label>
         </div>
         <table id="resultsTable">
             <thead>
@@ -820,16 +823,29 @@ def main():
 
                     if args.output_file:
                         # Write to specified output file
-                        with open(args.output_file, 'w', encoding='utf-8') as f:
+                        html_output_path = args.output_file
+                        with open(html_output_path, 'w', encoding='utf-8') as f:
                             f.write(html_content)
-                        print(f"HTML report saved to: {args.output_file}")
+                        print(f"HTML report saved to: {html_output_path}")
                     else:
                         # Write to default filename
                         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                        output_file = f"proxy_report_{timestamp}.html"
-                        with open(output_file, 'w', encoding='utf-8') as f:
+                        html_output_path = f"proxy_report_{timestamp}.html"
+                        with open(html_output_path, 'w', encoding='utf-8') as f:
                             f.write(html_content)
-                        print(f"HTML report saved to: {output_file}")
+                        print(f"HTML report saved to: {html_output_path}")
+
+                    # Prompt user to open in browser
+                    try:
+                        response = input("\nOpen report in browser? [Y/n]: ").strip().lower()
+                        if response in ('', 'y', 'yes'):
+                            # Convert to absolute path for browser
+                            abs_path = os.path.abspath(html_output_path)
+                            webbrowser.open(f'file://{abs_path}')
+                            print("Opened in browser.")
+                    except (EOFError, KeyboardInterrupt):
+                        # Handle non-interactive mode or Ctrl+C
+                        pass
                 
                 if args.summary:
                     # Display summary in console
